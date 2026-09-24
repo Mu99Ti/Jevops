@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 
 import httpx
 
-from jevops.chunks import split_range
+from jevops.chunks import split_by_count
 from jevops.drilldown import drill, label_chunks
 from jevops.jev import JevClient
 from jevops.models import LogEvent
@@ -67,7 +67,7 @@ def test_label_chunks_single_request_maps_scores_by_path():
         return {("imp_" + cid.replace(".", "_")): (0.9 if cid == "C2" else 0.1) for cid in ids}
 
     handler, calls = _handler_with_importance(rule)
-    chunks = split_range(_lines(16), START, END, parts=4)
+    chunks = split_by_count(_lines(16), chunk_size=4, start=START, end=END)
     labels, best, anything = label_chunks(_client(handler), "what broke?", chunks)
     assert calls["n"] == 1
     assert labels[best] == 0.9
@@ -87,7 +87,16 @@ def test_drill_descends_only_into_selected_chunk():
 
     handler, calls = _handler_with_importance(rule)
     result = drill(
-        _client(handler), _lines(32), START, END, "what broke?", parts=4, sub=4, depth=3, leaf_size=1, imp_threshold=0.5
+        _client(handler),
+        _lines(32),
+        START,
+        END,
+        "what broke?",
+        chunk_size=8,
+        sub=4,
+        depth=3,
+        leaf_size=1,
+        imp_threshold=0.5,
     )
     assert len(result.levels) >= 2
     assert result.levels[0].selected == ["C3"]
@@ -102,7 +111,7 @@ def test_drill_stops_at_leaf_size():
 
     handler, calls = _handler_with_importance(rule)
     result = drill(
-        _client(handler), _lines(8), START, END, "q", parts=2, sub=4, depth=5, leaf_size=5, imp_threshold=0.5
+        _client(handler), _lines(8), START, END, "q", chunk_size=4, sub=4, depth=5, leaf_size=5, imp_threshold=0.5
     )
     assert calls["n"] == 1
     assert len(result.levels) == 1
@@ -115,7 +124,7 @@ def test_drill_respects_max_depth():
 
     handler, calls = _handler_with_importance(rule)
     result = drill(
-        _client(handler), _lines(64), START, END, "q", parts=4, sub=2, depth=2, leaf_size=1, imp_threshold=0.5
+        _client(handler), _lines(64), START, END, "q", chunk_size=16, sub=2, depth=2, leaf_size=1, imp_threshold=0.5
     )
     assert calls["n"] <= 3
     assert len(result.levels) <= 3
@@ -134,7 +143,7 @@ def test_drill_caps_leaves_sorted_by_importance():
         START,
         END,
         "q",
-        parts=4,
+        chunk_size=4,
         sub=4,
         depth=3,
         leaf_size=1,
@@ -146,11 +155,27 @@ def test_drill_caps_leaves_sorted_by_importance():
     assert imps == sorted(imps, reverse=True)
 
 
+def test_drill_clamps_top_level_chunk_count_for_choice_limit():
+    def rule(payload, ids, n):
+        return {("imp_" + cid.replace(".", "_")): 0.9 for cid in ids}
+
+    handler, _ = _handler_with_importance(rule)
+    lines = _lines(300)
+    result = drill(
+        _client(handler), lines, START, END, "q", chunk_size=1, sub=2, depth=1, leaf_size=50, imp_threshold=0.5
+    )
+    assert result.jev_calls >= 1
+    top = result.levels[0]
+    assert len(top.labels) <= 200
+    assert len(top.labels) >= 100
+    assert result.leaves
+
+
 def test_empty_range_still_returns_structure():
     handler, calls = _handler_with_importance(
         lambda payload, ids, n: {("imp_" + cid.replace(".", "_")): 0.05 for cid in ids}
     )
-    result = drill(_client(handler), [], START, END, "q", parts=2, leaf_size=3)
+    result = drill(_client(handler), [], START, END, "q", chunk_size=10, leaf_size=3)
     assert result.levels
     assert calls["n"] == 0
     assert result.leaves == []

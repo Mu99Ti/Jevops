@@ -51,7 +51,7 @@ def run_query(
         start_dt,
         end_dt,
         question,
-        parts=config.query_chunks,
+        chunk_size=config.query_chunk_size,
         sub=config.query_sub,
         depth=config.query_depth,
         leaf_size=config.query_leaf,

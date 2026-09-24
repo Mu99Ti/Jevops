@@ -18,8 +18,8 @@ The user asks: *"what's important from 8am to now?"*
 raw logs in [from, to]
         │
         ▼
-1. chunk      equal time buckets (default 8), digest per chunk:
-              window, count, level histogram, services, sample lines
+1. chunk      chronological groups of ~N lines (default 40, JEVOPS_QUERY_CHUNK_SIZE),
+              balanced remainder in the last group; window = first..last line timestamp
         │
         ▼
 2. label      ONE Jev request, all chunks in parallel:
@@ -27,7 +27,7 @@ raw logs in [from, to]
         │
         ▼
 3. drill      selected = imp ≥ threshold ∪ {best}
-              subdivide selected buckets (default ×4) → repeat label
+              subdivide selected chunks by count (×4 groups) → repeat label
               until leaf size ≤ N lines or max depth reached
         │
         ▼
@@ -45,8 +45,10 @@ raw logs in [from, to]
   changes which lines are selected — it can only fetch lines by id (tool) and cite them.
 - **Fan-out per level:** all chunk labels ride in one `/v1/systemone` request
   (questions evaluate in parallel; cost ≈ tokens of the digests).
-- **Bounded work:** depth, subdivision factor, leaf size, and max leaves are config —
-  O(budget) Jev calls, never a scan of every line by the model.
+- **Bounded work:** chunks are groups of a fixed number of lines (density-aware by
+  construction), and depth, subdivision factor, leaf size, and max leaves are config —
+  O(budget) Jev calls, never a scan of every line by the model. Top-level chunk count is
+  additionally capped (~200) so choice cardinality stays within Jev's 255 limit.
 - **Verifiable citations:** cited line ids are validated against the leaf set before
   the answer is returned; unknown ids are dropped.
 - **Dependency injection:** every client takes an injectable transport; all logic is
@@ -59,7 +61,7 @@ raw logs in [from, to]
 | Env | Default | Meaning |
 |---|---|---|
 | `TEXT_MODEL_*` | Jevium values | LLM endpoint (OpenAI-compatible), model, key |
-| `JEVOPS_QUERY_CHUNKS` | 8 | top-level time buckets |
+| `JEVOPS_QUERY_CHUNK_SIZE` | 40 | lines per top-level chunk |
 | `JEVOPS_QUERY_SUB` | 4 | subdivision factor per level |
 | `JEVOPS_QUERY_DEPTH` | 4 | max drill depth |
 | `JEVOPS_QUERY_LEAF` | 5 | lines per leaf (stop condition) |

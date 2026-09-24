@@ -241,7 +241,7 @@ def test_query_command_end_to_end(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("TEXT_MODEL", "mimo")
     monkeypatch.setenv("JEVOPS_DB", str(db))
     monkeypatch.setenv("JEVOPS_SERVICES", str(tmp_path / "missing.toml"))
-    monkeypatch.setenv("JEVOPS_QUERY_CHUNKS", "4")
+    monkeypatch.setenv("JEVOPS_QUERY_CHUNK_SIZE", "4")
     monkeypatch.setenv("JEVOPS_QUERY_LEAF", "10")
     try:
         code = main(["query", "what is important?", "--from", "2026-09-24T08:00:00Z", "--to", "2026-09-24T09:00:00Z"])

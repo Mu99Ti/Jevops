@@ -49,24 +49,24 @@ def test_from_env_reads_text_model_and_query_settings(monkeypatch):
     monkeypatch.setenv("TEXT_MODEL_API_KEY", "sk-llm")
     monkeypatch.setenv("TEXT_MODEL_BASE_URL", "http://127.0.0.1:20128/v1")
     monkeypatch.setenv("TEXT_MODEL", "mimo")
-    monkeypatch.setenv("JEVOPS_QUERY_CHUNKS", "6")
+    monkeypatch.setenv("JEVOPS_QUERY_CHUNK_SIZE", "6")
     monkeypatch.setenv("JEVOPS_QUERY_IMP", "0.7")
     monkeypatch.setenv("JEVOPS_QUERY_MAX_LEAVES", "25")
     c = Config.from_env()
     assert c.text_model_api_key == "sk-llm"
     assert c.text_model_base_url == "http://127.0.0.1:20128/v1"
     assert c.text_model == "mimo"
-    assert c.query_chunks == 6
+    assert c.query_chunk_size == 6
     assert c.query_imp == 0.7
     assert c.query_max_leaves == 25
 
 
 def test_text_model_defaults(monkeypatch):
-    for key in ("TEXT_MODEL_API_KEY", "TEXT_MODEL_BASE_URL", "TEXT_MODEL", "JEVOPS_QUERY_CHUNKS"):
+    for key in ("TEXT_MODEL_API_KEY", "TEXT_MODEL_BASE_URL", "TEXT_MODEL", "JEVOPS_QUERY_CHUNK_SIZE"):
         monkeypatch.delenv(key, raising=False)
     c = Config.from_env()
     assert c.text_model_api_key == ""
-    assert c.query_chunks == 8
+    assert c.query_chunk_size == 40
     assert c.query_depth == 4
     assert c.query_leaf == 5
 

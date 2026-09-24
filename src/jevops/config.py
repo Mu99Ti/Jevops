@@ -63,7 +63,7 @@ class Config:
     text_model_api_key: str = ""
     text_model_base_url: str = ""
     text_model: str = ""
-    query_chunks: int = 8
+    query_chunk_size: int = 40
     query_sub: int = 4
     query_depth: int = 4
     query_leaf: int = 5
@@ -118,7 +118,7 @@ class Config:
             text_model_api_key=os.environ.get("TEXT_MODEL_API_KEY", ""),
             text_model_base_url=os.environ.get("TEXT_MODEL_BASE_URL", ""),
             text_model=os.environ.get("TEXT_MODEL", ""),
-            query_chunks=_i("JEVOPS_QUERY_CHUNKS", 8),
+            query_chunk_size=_i("JEVOPS_QUERY_CHUNK_SIZE", 40),
             query_sub=_i("JEVOPS_QUERY_SUB", 4),
             query_depth=_i("JEVOPS_QUERY_DEPTH", 4),
             query_leaf=_i("JEVOPS_QUERY_LEAF", 5),

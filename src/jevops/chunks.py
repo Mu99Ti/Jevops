@@ -30,54 +30,64 @@ class Chunk:
         return (self.end - self.start).total_seconds() / 60
 
 
-def _assign(lines: list[LogEvent], start: datetime, end: datetime, buckets: list[Chunk]) -> None:
-    span = (end - start).total_seconds() or 1.0
-    for line in lines:
-        ts = parse_ts(line.ts)
-        if ts is None or ts < start:
-            buckets[0].lines.append(line)
-        elif ts >= end:
-            buckets[-1].lines.append(line)
-        else:
-            idx = int((ts - start).total_seconds() // (span / len(buckets)))
-            buckets[min(idx, len(buckets) - 1)].lines.append(line)
+def _line_dt(line: LogEvent, fallback: datetime) -> datetime:
+    ts = parse_ts(line.ts)
+    if ts is None:
+        return fallback
+    if ts.tzinfo is None:
+        return ts.astimezone()
+    return ts
 
 
-def split_range(
+def split_by_count(
     lines: list[LogEvent],
+    chunk_size: int,
     start: datetime,
     end: datetime,
-    parts: int = 8,
     prefix: str = "C",
 ) -> list[Chunk]:
-    if end <= start:
-        raise ValueError("end must be after start")
-    parts = max(1, parts)
-    step = (end - start).total_seconds() / parts
-    chunks = [
-        Chunk(
-            path=f"{prefix}{i}",
-            start=start + timedelta(seconds=step * i),
-            end=start + timedelta(seconds=step * (i + 1)),
+    if chunk_size < 1:
+        raise ValueError("chunk_size must be >= 1")
+    if not lines:
+        return [Chunk(path=f"{prefix}0", start=start, end=end)]
+    chunks: list[Chunk] = []
+    for i in range(0, len(lines), chunk_size):
+        group = lines[i : i + chunk_size]
+        chunks.append(
+            Chunk(
+                path=f"{prefix}{len(chunks)}",
+                start=_line_dt(group[0], start),
+                end=_line_dt(group[-1], end),
+                lines=list(group),
+            )
         )
-        for i in range(parts)
-    ]
-    _assign(lines, start, end, chunks)
     return chunks
 
 
 def subdivide(chunk: Chunk, parts: int = 4) -> list[Chunk]:
     parts = max(1, parts)
-    step = (chunk.end - chunk.start).total_seconds() / parts
-    kids = [
-        Chunk(
-            path=f"{chunk.path}.{i}",
-            start=chunk.start + timedelta(seconds=step * i),
-            end=chunk.start + timedelta(seconds=step * (i + 1)),
+    if not chunk.lines:
+        step = (chunk.end - chunk.start).total_seconds() / parts
+        return [
+            Chunk(
+                path=f"{chunk.path}.{i}",
+                start=chunk.start + timedelta(seconds=step * i),
+                end=chunk.start + timedelta(seconds=step * (i + 1)),
+            )
+            for i in range(parts)
+        ]
+    per = -(-len(chunk.lines) // parts)
+    kids: list[Chunk] = []
+    for i in range(0, len(chunk.lines), per):
+        group = chunk.lines[i : i + per]
+        kids.append(
+            Chunk(
+                path=f"{chunk.path}.{len(kids)}",
+                start=_line_dt(group[0], chunk.start),
+                end=_line_dt(group[-1], chunk.end),
+                lines=list(group),
+            )
         )
-        for i in range(parts)
-    ]
-    _assign(chunk.lines, chunk.start, chunk.end, kids)
     return kids
 
 

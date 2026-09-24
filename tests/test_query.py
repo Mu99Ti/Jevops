@@ -100,7 +100,7 @@ def test_run_query_end_to_end(tmp_path):
             },
         )
 
-    config = Config(query_chunks=4, query_leaf=3, query_depth=2, query_imp=0.5)
+    config = Config(query_chunk_size=4, query_leaf=3, query_depth=2, query_imp=0.5)
     jev = JevClient(base_url="https://jev.test", api_key="k", transport=jev_t)
     llm = LLMClient("https://llm.test/v1", api_key="k", transport=httpx.MockTransport(llm_handler))
     result = run_query(store, jev, llm, "what is important?", START.isoformat(), END.isoformat(), config)
@@ -118,7 +118,7 @@ def test_run_query_without_llm_still_returns_drilldown(tmp_path):
     store = Store(tmp_path / "q.db")
     _seed(store)
     jev_t, _ = _jev_handler(lambda ids, n: {("imp_" + cid.replace(".", "_")): 0.9 for cid in ids})
-    config = Config(query_chunks=4, query_leaf=5)
+    config = Config(query_chunk_size=4, query_leaf=5)
     jev = JevClient(base_url="https://jev.test", api_key="k", transport=jev_t)
     result = run_query(store, jev, None, "q", START.isoformat(), END.isoformat(), config)
     assert result["drilldown"]["jev_calls"] >= 1

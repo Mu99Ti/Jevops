@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from jevops.chunks import Chunk, digest, split_range, subdivide
+from jevops.chunks import Chunk, digest, split_by_count, subdivide
 from jevops.jev import JevClient
 from jevops.models import LogEvent
 
@@ -121,7 +121,7 @@ def drill(
     end: datetime,
     question: str,
     *,
-    parts: int = 8,
+    chunk_size: int = 40,
     sub: int = 4,
     depth: int = 4,
     leaf_size: int = 5,
@@ -129,7 +129,8 @@ def drill(
     max_leaves: int = 50,
 ) -> Drilldown:
     result = Drilldown()
-    frontier = split_range(lines, start, end, parts=parts)
+    size = max(chunk_size, -(-len(lines) // 200) if lines else chunk_size)
+    frontier = split_by_count(lines, size, start, end)
     level_depth = 0
     while frontier:
         labels, best, anything = label_chunks(jev, question, frontier, start, end)

@@ -79,13 +79,13 @@ uv run jevops query "what is important from 08:00 to 10:00?" \
   --from 2026-09-24T08:00:00+00:00 --to 2026-09-24T10:00:00+00:00
 ```
 
-How it works (`docs/hierarchical-query.md`): split the range into time chunks → one Jev
-request labels every chunk in parallel → recurse into the important ones (subdivide ×4,
-depth ≤ 4) until leaf chunks of ≤ 5 lines → the text model receives only that timeline,
-can fetch raw lines via the `read_log_lines` tool, and must cite line ids — unknown ids
-are rejected. On the 584-line demo corpus: 344 lines scanned, 5 Jev calls, 47 leaf
-chunks, 24 validated citations, all three embedded incidents identified with correct
-times, blast radius, and likely causes.
+How it works (`docs/hierarchical-query.md`): group the range into ~40-line chunks
+(`JEVOPS_QUERY_CHUNK_SIZE`) → one Jev request labels every chunk in parallel → recurse
+into the important ones (×4 by count, depth ≤ 4) until leaf chunks of ≤ 5 lines → the
+text model receives only that timeline, can fetch raw lines via the `read_log_lines`
+tool, and must cite line ids — unknown ids are rejected. On the 584-line demo corpus:
+344 lines scanned, 5 Jev calls, 47 leaf chunks, 24 validated citations, all three
+embedded incidents identified with correct times, blast radius, and likely causes.
 
 ## Page policy
 
