@@ -39,9 +39,16 @@ def _level_rank(level: str) -> int:
     return _LEVEL_RANK.get(level.upper(), 20)
 
 
-def should_consider(event: LogEvent, min_level: str = "ERROR", noise_patterns: tuple[str, ...] = ()) -> bool:
+def should_consider(
+    event: LogEvent,
+    min_level: str = "ERROR",
+    noise_patterns: tuple[str, ...] = (),
+    recovery_hints: tuple[str, ...] = (),
+) -> bool:
     if _level_rank(event.level) < _level_rank(min_level):
-        return False
+        lowered = event.message.lower()
+        if not recovery_hints or not any(hint.lower() in lowered for hint in recovery_hints):
+            return False
     lowered = event.message.lower()
     return not any(pattern.lower() in lowered for pattern in noise_patterns)
 

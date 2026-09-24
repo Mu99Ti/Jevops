@@ -1,0 +1,650 @@
+[
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "critical",
+  "scenario": "worker-oom"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "worker-oom"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "critical",
+  "scenario": "auth-security"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "warning",
+  "scenario": "frontend-deploy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "auth-security"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "auth-security"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "critical",
+  "scenario": "worker-oom"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "critical",
+  "scenario": "worker-oom"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "critical",
+  "scenario": "auth-security"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "critical",
+  "scenario": "auth-security"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "worker-oom"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "warning",
+  "scenario": "frontend-deploy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "critical",
+  "scenario": "worker-oom"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage-recovery"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "warning",
+  "scenario": "frontend-deploy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "worker-oom"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "warning",
+  "scenario": "frontend-deploy"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "warning",
+  "scenario": "frontend-deploy"
+ },
+ {
+  "truth": "warning",
+  "scenario": "frontend-deploy"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "critical",
+  "scenario": "worker-oom"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "critical",
+  "scenario": "worker-oom"
+ },
+ {
+  "truth": "critical",
+  "scenario": "worker-oom"
+ },
+ {
+  "truth": "warning",
+  "scenario": "frontend-deploy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "critical",
+  "scenario": "auth-security"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "warning",
+  "scenario": "db-proxy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage-recovery"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "worker-oom"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "worker-oom"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "warning",
+  "scenario": "frontend-deploy"
+ },
+ {
+  "truth": "critical",
+  "scenario": "auth-security"
+ },
+ {
+  "truth": "warning",
+  "scenario": "frontend-deploy"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "warning",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "auth-security"
+ },
+ {
+  "truth": "critical",
+  "scenario": "auth-security"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "warning",
+  "scenario": "frontend-deploy"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "info",
+  "scenario": "noise"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "critical",
+  "scenario": "search-capacity"
+ },
+ {
+  "truth": "critical",
+  "scenario": "auth-security"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "warning",
+  "scenario": "worker-queue"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ },
+ {
+  "truth": "critical",
+  "scenario": "checkout-outage"
+ }
+]

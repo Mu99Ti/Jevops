@@ -184,6 +184,156 @@ def test_exports_decision_to_elasticsearch(tmp_path):
     assert "@timestamp" in captured[0]
 
 
+def test_info_level_recovery_event_resolves_open_page(tmp_path):
+    pipeline, pd_bodies, _, _ = _pipeline(
+        tmp_path,
+        triage_sequence=[{"severity": "critical"}, {"severity": "info", "recovery": 0.95}],
+    )
+    pipeline.process_events([_raw(msg="gateway failure storm")])
+    resolved = pipeline.process_events(
+        [
+            {
+                "@timestamp": "2026-09-24T13:50:00Z",
+                "service": "checkout-api",
+                "env": "prod",
+                "level": "INFO",
+                "message": "all errors cleared, pool back to 42/200",
+            }
+        ]
+    )
+    assert resolved[0].action == "resolve"
+    assert pd_bodies[1]["event_action"] == "resolve"
+
+
+def test_model_validation_error_becomes_digest_and_batch_continues(tmp_path):
+    import httpx as _httpx
+
+    from jevops.config import Config as _Config
+    from jevops.jev import JevClient as _JevClient
+    from jevops.notifier import Notifier as _Notifier
+    from jevops.pipeline import Pipeline as _Pipeline
+    from jevops.store import Store as _Store
+
+    def bad_handler(request):
+        payload = json.loads(request.content.decode())
+        if "worst" in payload["questions"]:
+            ids = sorted(payload["questions"]["worst"]["criteria"].keys())
+            probs = {eid: 1.0 / len(ids) for eid in ids}
+            return httpx.Response(
+                200,
+                json={
+                    "answers": {
+                        "worst": {"choice": ids[0], "probabilities": probs, "confidence": 0.9},
+                        "page_worthy": {"noul": 0.5},
+                    },
+                    "usage": {},
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "model": "jev-1.13.0",
+                "answers": {
+                    "severity": {
+                        "choice": "critical",
+                        "probabilities": {"info": 0, "warning": 0, "critical": 1},
+                        "confidence": 0.99,
+                    },
+                    "category": {
+                        "choice": "dependency",
+                        "probabilities": {
+                            "deployment": 1.0,
+                            "capacity": 0,
+                            "dependency": 0,
+                            "application_bug": 0,
+                            "security": 0,
+                            "data": 0,
+                            "unknown": 0,
+                        },
+                        "confidence": 0.9,
+                    },
+                    "urgency": {"score": 3.0, "probabilities": {"3": 1}},
+                    "needs_human": {"noul": 0.9},
+                    "novelty": {"noul": 0.5},
+                    "recovery": {"noul": 0.05},
+                },
+                "usage": {"input_tokens": 5, "output_tokens": 1},
+            },
+        )
+
+    pipeline = _Pipeline(
+        config=_Config(),
+        store=_Store(tmp_path / "m.db"),
+        jev=_JevClient(base_url="https://jev.test", api_key="k", transport=_httpx.MockTransport(bad_handler)),
+        notifier=_Notifier(dry_run=True, transport=_httpx.MockTransport(bad_handler)),
+    )
+    decisions = pipeline.process_events([_raw(msg="first broken model response"), _raw(msg="second event continues")])
+    assert len(decisions) == 2
+    assert decisions[0].action == "digest"
+    assert decisions[0].reason.startswith("model_error")
+    assert decisions[1].action == "digest"
+
+
+def test_rank_failure_falls_back_to_first_events(tmp_path):
+    import httpx as _httpx
+
+    from jevops.config import Config as _Config
+    from jevops.jev import JevClient as _JevClient
+    from jevops.notifier import Notifier as _Notifier
+    from jevops.pipeline import Pipeline as _Pipeline
+    from jevops.store import Store as _Store
+
+    def triage_ok(request):
+        return httpx.Response(
+            200,
+            json={
+                "model": "jev-1.13.0",
+                "answers": {
+                    "severity": {
+                        "choice": "warning",
+                        "probabilities": {"info": 0, "warning": 1, "critical": 0},
+                        "confidence": 0.9,
+                    },
+                    "category": {
+                        "choice": "data",
+                        "probabilities": {
+                            "deployment": 0,
+                            "capacity": 0,
+                            "dependency": 0,
+                            "application_bug": 0,
+                            "security": 0,
+                            "data": 1,
+                            "unknown": 0,
+                        },
+                        "confidence": 0.9,
+                    },
+                    "urgency": {"score": 1.0, "probabilities": {"1": 1}},
+                    "needs_human": {"noul": 0.3},
+                    "novelty": {"noul": 0.3},
+                    "recovery": {"noul": 0.05},
+                },
+                "usage": {"input_tokens": 5, "output_tokens": 1},
+            },
+        )
+
+    def handler(request):
+        payload = json.loads(request.content.decode())
+        if "worst" in payload["questions"]:
+            return httpx.Response(429, headers={"Retry-After": "0"}, json={"error": "slow down"})
+        return triage_ok(request)
+
+    pipeline = _Pipeline(
+        config=_Config(),
+        store=_Store(tmp_path / "r.db"),
+        jev=_JevClient(base_url="https://jev.test", api_key="k", transport=_httpx.MockTransport(handler)),
+        notifier=_Notifier(dry_run=True, transport=_httpx.MockTransport(triage_ok)),
+    )
+    events = [_raw(msg=f"distinct {name} failure") for name in ("alpha", "beta", "gamma", "delta")]
+    decisions = pipeline.process_events(events)
+    assert len(decisions) == 3
+    assert {d.action for d in decisions} == {"digest"}
+
+
 def test_events_filtered_out_do_not_consume_triage_sequence(tmp_path):
     pipeline, _, _, _ = _pipeline(tmp_path, triage_sequence=[{"severity": "warning"}])
     decisions = pipeline.process_events([_raw(level="INFO", msg="ping"), _raw(msg="real error")])

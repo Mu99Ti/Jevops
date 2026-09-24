@@ -5,7 +5,7 @@ from typing import Any
 
 from jevops.config import Config
 from jevops.elastic import ElasticClient
-from jevops.jev import JevClient
+from jevops.jev import JevClient, JevError
 from jevops.models import LogEvent, PageDecision
 from jevops.notifier import Notifier
 from jevops.policy import Policy, ServicePolicy
@@ -47,7 +47,9 @@ class Pipeline:
 
     def process_events(self, raw_events: list[dict[str, Any]]) -> list[PageDecision]:
         events = [build_event(raw, self.config.max_message) for raw in raw_events if isinstance(raw, dict)]
-        candidates = [e for e in events if should_consider(e, self.config.min_level, self.noise)]
+        candidates = [
+            e for e in events if should_consider(e, self.config.min_level, self.noise, self.config.recovery_hints)
+        ]
         fresh: list[LogEvent] = []
         for event in candidates:
             if self.store.add_event(event):
@@ -57,12 +59,21 @@ class Pipeline:
 
         to_triage = fresh
         if len(fresh) > self.config.top_k:
-            ranked = self.jev.rank_burst(fresh[: self.config.max_burst])
-            to_triage = [r.event for r in ranked[: self.config.top_k]]
+            try:
+                ranked = self.jev.rank_burst(fresh[: self.config.max_burst])
+                to_triage = [r.event for r in ranked[: self.config.top_k]]
+            except JevError:
+                to_triage = fresh[: self.config.top_k]
 
         decisions: list[PageDecision] = []
         for event in to_triage:
-            triage = self.jev.triage(event)
+            try:
+                triage = self.jev.triage(event)
+            except JevError as e:
+                decision = PageDecision(action="digest", reason=f"model_error: {str(e)[:120]}", event=event)
+                self.store.record_decision(event.id, decision.action, decision.reason, decision.composite)
+                decisions.append(decision)
+                continue
             self.store.save_triage(triage)
             cooldown = self.store.page_active(event.service, triage.category, self.policy.cooldown_for(event.service))
             paged = self.store.paged_for(event.service)

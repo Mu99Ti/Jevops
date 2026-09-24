@@ -1,4 +1,25 @@
+from jevops.models import LogEvent
 from jevops.prefilter import build_event, fingerprint, normalize, should_consider
+
+RECOVERY_HINTS = ("cleared", "recovered", "back to normal", "green again")
+
+
+def test_info_recovery_event_bypasses_error_floor():
+    e = LogEvent(id="1", ts="", service="api", env="prod", level="INFO", message="all errors cleared, error rate 0")
+    assert should_consider(e, min_level="ERROR", recovery_hints=RECOVERY_HINTS)
+    assert not should_consider(e, min_level="ERROR")
+
+
+def test_warn_recovery_event_also_bypasses_floor():
+    e = LogEvent(
+        id="1", ts="", service="api", env="prod", level="WARN", message="queue recovered, consumers rebalanced"
+    )
+    assert should_consider(e, min_level="ERROR", recovery_hints=RECOVERY_HINTS)
+
+
+def test_plain_info_event_does_not_bypass_floor():
+    e = LogEvent(id="1", ts="", service="api", env="prod", level="INFO", message="heartbeat received")
+    assert not should_consider(e, min_level="ERROR", recovery_hints=RECOVERY_HINTS)
 
 
 def test_normalize_replaces_numbers():

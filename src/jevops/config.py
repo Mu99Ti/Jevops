@@ -26,6 +26,15 @@ class Config:
     services_path: str = "services.toml"
     services: dict[str, ServicePolicy] = field(default_factory=dict)
     min_level: str = "ERROR"
+    recovery_hints: tuple[str, ...] = (
+        "cleared",
+        "recovered",
+        "recovering",
+        "back to normal",
+        "back online",
+        "green again",
+        "all systems healthy",
+    )
     noise_path: str = "noise.txt"
     max_message: int = 4000
     max_burst: int = 255
@@ -63,6 +72,14 @@ class Config:
             db_path=os.environ.get("JEVOPS_DB", "jevops.db"),
             services_path=os.environ.get("JEVOPS_SERVICES", "services.toml"),
             min_level=os.environ.get("JEVOPS_MIN_LEVEL", "ERROR"),
+            recovery_hints=tuple(
+                h.strip()
+                for h in os.environ.get(
+                    "JEVOPS_RECOVERY_HINTS",
+                    "cleared,recovered,recovering,back to normal,back online,green again,all systems healthy",
+                ).split(",")
+                if h.strip()
+            ),
             noise_path=os.environ.get("JEVOPS_NOISE", "noise.txt"),
             max_message=_i("JEVOPS_MAX_MESSAGE", 4000),
             max_burst=min(_i("JEVOPS_MAX_BURST", 255), 255),
