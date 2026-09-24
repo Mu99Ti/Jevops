@@ -157,6 +157,114 @@ def test_replay_command_end_to_end(tmp_path, monkeypatch, capsys):
     assert payload["decisions"][0]["triage"]["severity"] == "warning"
 
 
+class _QueryJevServer(BaseHTTPRequestHandler):
+    def do_POST(self) -> None:
+        length = int(self.headers.get("Content-Length", 0))
+        payload = json.loads(self.rfile.read(length).decode())
+        ids = [c["id"] for c in payload["state"]["chunks"]]
+        answers = {}
+        for key in payload["questions"]:
+            if key.startswith("imp_"):
+                answers[key] = {"type": "noul", "noul": 0.9}
+        best = ids[0] if ids else ""
+        answers["best"] = {
+            "type": "choice",
+            "choice": best,
+            "probabilities": {c: (1.0 if c == best else 0.0) for c in ids},
+            "confidence": 0.9,
+        }
+        answers["anything"] = {"type": "noul", "noul": 0.9}
+        body = json.dumps(
+            {"model": "jev-1.13.0", "answers": answers, "usage": {"input_tokens": 5, "output_tokens": 1}}
+        ).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args: object) -> None:
+        return
+
+
+class _QueryLLMServer(BaseHTTPRequestHandler):
+    def do_POST(self) -> None:
+        length = int(self.headers.get("Content-Length", 0))
+        self.rfile.read(length)
+        body = json.dumps(
+            {
+                "model": "mimo",
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {"role": "assistant", "content": "Checkout degradation visible at [L0001]."},
+                    }
+                ],
+                "usage": {"prompt_tokens": 50, "completion_tokens": 20},
+            }
+        ).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args: object) -> None:
+        return
+
+
+def test_query_command_end_to_end(tmp_path, monkeypatch, capsys):
+    from jevops.models import LogEvent
+    from jevops.store import Store
+
+    db = tmp_path / "qq.db"
+    store = Store(db)
+    for i in range(10):
+        store.add_log_line(
+            LogEvent(
+                id=f"l{i}",
+                ts=f"2026-09-24T08:{i * 5:02d}:00Z",
+                service="checkout-api",
+                env="prod",
+                level="ERROR",
+                message=f"gateway timeout failure {i}",
+            )
+        )
+    store.close()
+
+    jev_server, jev_url = _serve(ThreadingHTTPServer, _QueryJevServer)
+    llm_server, llm_url = _serve(ThreadingHTTPServer, _QueryLLMServer)
+    monkeypatch.setenv("TYPESAFE_BASE_URL", jev_url)
+    monkeypatch.setenv("TYPESAFE_API_KEY", "k")
+    monkeypatch.setenv("TEXT_MODEL_BASE_URL", llm_url)
+    monkeypatch.setenv("TEXT_MODEL_API_KEY", "k")
+    monkeypatch.setenv("TEXT_MODEL", "mimo")
+    monkeypatch.setenv("JEVOPS_DB", str(db))
+    monkeypatch.setenv("JEVOPS_SERVICES", str(tmp_path / "missing.toml"))
+    monkeypatch.setenv("JEVOPS_QUERY_CHUNKS", "4")
+    monkeypatch.setenv("JEVOPS_QUERY_LEAF", "10")
+    try:
+        code = main(["query", "what is important?", "--from", "2026-09-24T08:00:00Z", "--to", "2026-09-24T09:00:00Z"])
+    finally:
+        jev_server.shutdown()
+        llm_server.shutdown()
+    assert code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["lines_scanned"] == 10
+    assert payload["drilldown"]["jev_calls"] >= 1
+    assert payload["answer"]["cited"] == ["L0001"]
+    assert "Checkout degradation" in payload["answer"]["answer"]
+    assert payload["answer"]["usage"]["completion_tokens"] == 20
+
+
+def test_query_command_requires_from_before_to(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("JEVOPS_DB", str(tmp_path / "bad.db"))
+    monkeypatch.setenv("JEVOPS_SERVICES", str(tmp_path / "missing.toml"))
+    code = main(["query", "q", "--from", "2026-09-24T09:00:00Z", "--to", "2026-09-24T08:00:00Z"])
+    assert code == 2
+    assert "after start" in capsys.readouterr().out
+
+
 def test_provision_command_creates_es_and_grafana_resources(monkeypatch, capsys):
     infra, infra_url = _serve(ThreadingHTTPServer, _InfraServer)
     monkeypatch.setenv("ES_URL", infra_url)

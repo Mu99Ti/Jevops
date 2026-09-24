@@ -102,6 +102,27 @@ def test_checkpoint_roundtrip(tmp_path: Path):
     assert store.checkpoint_get("es") == "2026-09-24T14:00:00Z"
 
 
+def test_add_log_line_keeps_every_occurrence(tmp_path: Path):
+    store = Store(tmp_path / "t.db")
+    assert store.add_log_line(_event("f1")) is True
+    assert store.add_log_line(_event("f1")) is True
+    assert len(store.lines_between("0000", "9999")) == 2
+
+
+def test_lines_between_filters_by_range_and_sorts(tmp_path: Path):
+    store = Store(tmp_path / "t.db")
+    a = LogEvent(id="a", ts="2026-09-24T08:10:00Z", service="api", env="prod", level="ERROR", message="first")
+    b = LogEvent(id="b", ts="2026-09-24T09:30:00Z", service="api", env="prod", level="ERROR", message="second")
+    c = LogEvent(id="c", ts="2026-09-24T07:00:00Z", service="api", env="prod", level="ERROR", message="before")
+    d = LogEvent(id="d", ts="", service="api", env="prod", level="ERROR", message="no timestamp")
+    for line in (b, a, c, d):
+        store.add_log_line(line)
+    got = store.lines_between("2026-09-24T08:00:00Z", "2026-09-24T10:00:00Z")
+    assert [line.id for line in got] == ["a", "b"]
+    all_lines = store.lines_between("", "")
+    assert len(all_lines) == 4
+
+
 def test_cooldown_respects_old_page_time(tmp_path: Path):
     store = Store(tmp_path / "t.db")
     store.add_event(_event())

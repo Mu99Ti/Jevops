@@ -4,6 +4,7 @@ import argparse
 import json
 import sys
 import time
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -12,9 +13,11 @@ from jevops.elastic import ElasticClient
 from jevops.grafana import GrafanaClient
 from jevops.intake import build_server
 from jevops.jev import JevClient
+from jevops.llm import LLMClient
 from jevops.notifier import Notifier
 from jevops.pipeline import Pipeline
 from jevops.prefilter import load_noise_patterns
+from jevops.query import run_query
 from jevops.store import Store
 
 DECISIONS_MAPPINGS = {
@@ -76,12 +79,35 @@ def _build_pipeline(config: Config) -> Pipeline:
     )
 
 
+def _build_llm(config: Config) -> LLMClient | None:
+    if not config.text_model_base_url or not config.text_model_api_key:
+        return None
+    return LLMClient(config.text_model_base_url, api_key=config.text_model_api_key, model=config.text_model)
+
+
 def _cmd_serve(config: Config) -> int:
     pipeline = _build_pipeline(config)
-    server = build_server(pipeline, config.host, config.port)
+    llm = _build_llm(config)
+
+    def query_fn(payload: dict[str, Any]) -> dict[str, Any]:
+        question = str(payload.get("question") or "").strip()
+        if not question:
+            return {"error": "question is required"}
+        now = datetime.now(UTC)
+        start = str(payload.get("from") or (now - timedelta(hours=4)).isoformat())
+        end = str(payload.get("to") or now.isoformat())
+        try:
+            return run_query(pipeline.store, pipeline.jev, llm, question, start, end, config)
+        except ValueError as e:
+            return {"error": str(e)}
+
+    server = build_server(pipeline, config.host, config.port, query_fn=query_fn)
     print(
         json.dumps(
-            {"listening": f"http://{config.host}:{config.port}", "endpoints": ["/ingest", "/healthz", "/decisions"]}
+            {
+                "listening": f"http://{config.host}:{config.port}",
+                "endpoints": ["/ingest", "/healthz", "/decisions", "/query"],
+            }
         )
     )
     try:
@@ -90,6 +116,21 @@ def _cmd_serve(config: Config) -> int:
         pass
     finally:
         server.shutdown()
+    return 0
+
+
+def _cmd_query(config: Config, question: str, from_s: str | None, to_s: str | None) -> int:
+    pipeline = _build_pipeline(config)
+    llm = _build_llm(config)
+    now = datetime.now(UTC)
+    start = from_s or (now - timedelta(hours=4)).isoformat()
+    end = to_s or now.isoformat()
+    try:
+        result = run_query(pipeline.store, pipeline.jev, llm, question, start, end, config)
+    except ValueError as e:
+        print(json.dumps({"error": str(e)}))
+        return 2
+    print(json.dumps(result, indent=2))
     return 0
 
 
@@ -219,6 +260,10 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("selfcheck", help="verify TypeSafe, Elasticsearch, and Grafana connectivity")
     replay = sub.add_parser("replay", help="triage a JSONL file of events")
     replay.add_argument("path")
+    query = sub.add_parser("query", help="ask what is important in a time range (hierarchical drill-down + LLM answer)")
+    query.add_argument("question")
+    query.add_argument("--from", dest="from_time", default=None, help="ISO start, e.g. 2026-09-24T08:00:00Z")
+    query.add_argument("--to", dest="to_time", default=None, help="ISO end (default now)")
     args = parser.parse_args(argv)
     config = _load_config()
     if args.command == "serve":
@@ -229,6 +274,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_provision(config)
     if args.command == "replay":
         return _cmd_replay(config, args.path)
+    if args.command == "query":
+        return _cmd_query(config, args.question, args.from_time, args.to_time)
     if args.command == "selfcheck":
         return _cmd_selfcheck(config)
     return 1

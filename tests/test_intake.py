@@ -145,6 +145,31 @@ def test_ingest_single_event_object(tmp_path):
         server.shutdown()
 
 
+def test_query_endpoint_with_injected_fn(tmp_path):
+    pipeline = _make_pipeline(tmp_path)
+
+    def fake_query(payload):
+        return {"question": payload.get("question"), "answer": {"answer": "mock", "cited": []}}
+
+    server = build_server(pipeline, "127.0.0.1", 0, query_fn=fake_query)
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        body = json.dumps(
+            {"question": "what matters?", "from": "2026-09-24T08:00:00Z", "to": "2026-09-24T09:00:00Z"}
+        ).encode()
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{port}/query", data=body, headers={"Content-Type": "application/json"}, method="POST"
+        )
+        with urllib.request.urlopen(req) as resp:
+            payload = json.loads(resp.read())
+        assert payload["question"] == "what matters?"
+        assert payload["answer"]["answer"] == "mock"
+    finally:
+        server.shutdown()
+
+
 def test_decisions_endpoint(tmp_path):
     pipeline = _make_pipeline(tmp_path)
     pipeline.process_events([{"service": "api", "level": "ERROR", "message": "boom"}])
@@ -157,5 +182,27 @@ def test_decisions_endpoint(tmp_path):
             rows = json.loads(resp.read())
         assert len(rows) == 1
         assert rows[0]["action"] == "digest"
+    finally:
+        server.shutdown()
+
+
+def test_query_endpoint_404_when_not_configured(tmp_path):
+    import urllib.error
+
+    pipeline = _make_pipeline(tmp_path)
+    server = build_server(pipeline, "127.0.0.1", 0)
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        body = json.dumps({"question": "q"}).encode()
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{port}/query", data=body, headers={"Content-Type": "application/json"}, method="POST"
+        )
+        try:
+            urllib.request.urlopen(req)
+            raise AssertionError("expected 404")
+        except urllib.error.HTTPError as e:
+            assert e.code == 404
     finally:
         server.shutdown()

@@ -8,7 +8,7 @@ from typing import Any
 from jevops.pipeline import Pipeline
 
 
-def _handler_class(pipeline: Pipeline) -> type[BaseHTTPRequestHandler]:
+def _handler_class(pipeline: Pipeline, query_fn: Any = None) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
@@ -34,6 +34,16 @@ def _handler_class(pipeline: Pipeline) -> type[BaseHTTPRequestHandler]:
         def do_POST(self) -> None:
             length = int(self.headers.get("Content-Length", 0))
             raw = self.rfile.read(length)
+            if self.path == "/query":
+                if query_fn is None:
+                    self._respond(404, {"error": "query not configured"})
+                    return
+                try:
+                    data = json.loads(raw or b"{}")
+                    self._respond(200, query_fn(data))
+                except json.JSONDecodeError:
+                    self._respond(400, {"error": "invalid json"})
+                return
             if self.path != "/ingest":
                 self._respond(404, {"error": "not found"})
                 return
@@ -60,7 +70,7 @@ def _handler_class(pipeline: Pipeline) -> type[BaseHTTPRequestHandler]:
     return Handler
 
 
-def build_server(pipeline: Pipeline, host: str, port: int) -> ThreadingHTTPServer:
-    server = ThreadingHTTPServer((host, port), _handler_class(pipeline))
+def build_server(pipeline: Pipeline, host: str, port: int, query_fn: Any = None) -> ThreadingHTTPServer:
+    server = ThreadingHTTPServer((host, port), _handler_class(pipeline, query_fn))
     server.daemon_threads = True
     return server

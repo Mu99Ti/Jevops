@@ -46,7 +46,13 @@ class Pipeline:
         )
 
     def process_events(self, raw_events: list[dict[str, Any]]) -> list[PageDecision]:
-        events = [build_event(raw, self.config.max_message) for raw in raw_events if isinstance(raw, dict)]
+        events: list[LogEvent] = []
+        for raw in raw_events:
+            if not isinstance(raw, dict):
+                continue
+            event = build_event(raw, self.config.max_message)
+            self.store.add_log_line(event)
+            events.append(event)
         candidates = [
             e for e in events if should_consider(e, self.config.min_level, self.noise, self.config.recovery_hints)
         ]

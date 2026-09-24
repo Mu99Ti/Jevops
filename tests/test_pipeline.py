@@ -334,6 +334,14 @@ def test_rank_failure_falls_back_to_first_events(tmp_path):
     assert {d.action for d in decisions} == {"digest"}
 
 
+def test_raw_lines_are_stored_even_when_filtered(tmp_path):
+    pipeline, _, _, store = _pipeline(tmp_path)
+    pipeline.process_events([_raw(level="INFO", msg="heartbeat"), _raw(msg="real error")])
+    stored = store.lines_between("", "")
+    assert len(stored) == 2
+    assert {line.level for line in stored} == {"INFO", "ERROR"}
+
+
 def test_events_filtered_out_do_not_consume_triage_sequence(tmp_path):
     pipeline, _, _, _ = _pipeline(tmp_path, triage_sequence=[{"severity": "warning"}])
     decisions = pipeline.process_events([_raw(level="INFO", msg="ping"), _raw(msg="real error")])

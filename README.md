@@ -1,8 +1,11 @@
 # Jevops
 
-SRE log triage assistant built on **TypeSafe Jev** (the System One decision model) with Elasticsearch, Logstash, Kibana, and Grafana integration.
+SRE log tool built on **TypeSafe Jev** (typed decision model) with Elasticsearch, Logstash, Kibana, and Grafana integration — two coexisting approaches:
 
-Jev answers typed questions against a state (`choice` probabilities, `score` levels, `noul` 0–1 likelihoods) with calibrated confidence, ~70–500 ms, $0.042/M input tokens (output free). Jevops turns that into pages, digests, and resolved incidents instead of log-sprawl.
+- **Mode A — real-time triage:** streams logs and decides page / digest / resolve (see below).
+- **Mode B — investigative query:** answers *"what's important from 8am to now?"* by hierarchically drilling chunks of logs with Jev, then having an LLM explain the exact lines with citations and tool calls (`docs/hierarchical-query.md`).
+
+Jev answers typed questions against a state (`choice` probabilities, `score` levels, `noul` 0–1 likelihoods) with calibrated confidence, ~70–500 ms, $0.042/M input tokens (output free). Jevops turns that into pages, digests, and resolved incidents instead of log-sprawl — or into a cited timeline when you ask a question.
 
 ```
                     ┌──────────────┐   HTTP /ingest
@@ -53,6 +56,7 @@ Send logs to Logstash: `nc localhost 5000 < examples/events.jsonl` (one JSON obj
 | Endpoint | Description |
 |---|---|
 | `POST /ingest` | Accepts one event object, a list, or `{"events":[...]}`. Returns decisions. |
+| `POST /query` | Hierarchical drill-down query: `{"question", "from", "to"}` → trace, timeline, cited answer. |
 | `GET /decisions?limit=50` | Recent decisions joined with events + triage. |
 | `GET /healthz` | Liveness. |
 
@@ -60,11 +64,28 @@ Send logs to Logstash: `nc localhost 5000 < examples/events.jsonl` (one JSON obj
 
 | Command | Description |
 |---|---|
-| `jevops serve` | Run the intake server. |
+| `jevops serve` | Run the intake server (triage + query). |
+| `jevops query "question" --from ISO --to ISO` | Mode B: drill down with Jev, answer with the LLM (JSON on stdout). |
 | `jevops poll-es` | Poll `ES_INDEX_SOURCE` (checkpointed via `search_after` + timestamp) and triage. |
 | `jevops provision` | Ensure the ES decisions index and all Grafana resources. |
 | `jevops replay FILE` | Triage a JSONL file through the full pipeline (great with `JEVOPS_DRY_RUN=true`). |
 | `jevops selfcheck` | Connectivity check for TypeSafe, Elasticsearch, Grafana. |
+
+## Mode B — investigative query
+
+```bash
+uv run jevops replay examples/query_logs.jsonl          # ingest raw lines into the store
+uv run jevops query "what is important from 08:00 to 10:00?" \
+  --from 2026-09-24T08:00:00+00:00 --to 2026-09-24T10:00:00+00:00
+```
+
+How it works (`docs/hierarchical-query.md`): split the range into time chunks → one Jev
+request labels every chunk in parallel → recurse into the important ones (subdivide ×4,
+depth ≤ 4) until leaf chunks of ≤ 5 lines → the text model receives only that timeline,
+can fetch raw lines via the `read_log_lines` tool, and must cite line ids — unknown ids
+are rejected. On the 584-line demo corpus: 344 lines scanned, 5 Jev calls, 47 leaf
+chunks, 24 validated citations, all three embedded incidents identified with correct
+times, blast radius, and likely causes.
 
 ## Page policy
 
@@ -86,7 +107,7 @@ Kibana: `docker compose --profile kibana up -d kibana` (raw log exploration; Jev
 
 ## Configuration
 
-All via environment (see `.env.example`): TypeSafe (`TYPESAFE_*`), intake/policy (`JEVOPS_*`), Elasticsearch (`ES_*`), Grafana (`GRAFANA_*`), notifiers (`SLACK_WEBHOOK_URL`, `PAGERDUTY_ROUTING_KEY`, `JEVOPS_WEBHOOK_URL`).
+All via environment (see `.env.example`): TypeSafe (`TYPESAFE_*`), text model for queries (`TEXT_MODEL_*`), intake/policy (`JEVOPS_*`), query budgets (`JEVOPS_QUERY_*`), Elasticsearch (`ES_*`), Grafana (`GRAFANA_*`), notifiers (`SLACK_WEBHOOK_URL`, `PAGERDUTY_ROUTING_KEY`, `JEVOPS_WEBHOOK_URL`).
 
 Pin `TYPESAFE_MODEL=jev-1.13.0` in production (aliases move under you); responses include the model that actually answered.
 

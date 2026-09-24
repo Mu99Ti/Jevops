@@ -57,6 +57,18 @@ CREATE TABLE IF NOT EXISTS checkpoints (
     name TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS log_lines (
+    pk INTEGER PRIMARY KEY AUTOINCREMENT,
+    fingerprint TEXT NOT NULL,
+    ts TEXT NOT NULL DEFAULT '',
+    ts_epoch REAL NOT NULL DEFAULT 0,
+    service TEXT NOT NULL DEFAULT 'unknown',
+    env TEXT NOT NULL DEFAULT 'unknown',
+    level TEXT NOT NULL DEFAULT 'INFO',
+    message TEXT NOT NULL DEFAULT '',
+    fields TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_log_lines_epoch ON log_lines (ts_epoch);
 """
 
 
@@ -202,3 +214,55 @@ class Store:
     def checkpoint_set(self, name: str, value: str) -> None:
         self._conn.execute("INSERT OR REPLACE INTO checkpoints (name, value) VALUES (?,?)", (name, value))
         self._conn.commit()
+
+    def add_log_line(self, event: LogEvent) -> bool:
+        from jevops.chunks import parse_ts
+
+        ts = parse_ts(event.ts)
+        cur = self._conn.execute(
+            "INSERT INTO log_lines (fingerprint, ts, ts_epoch, service, env, level, message, fields) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            (
+                event.id,
+                event.ts,
+                ts.timestamp() if ts else 0.0,
+                event.service,
+                event.env,
+                event.level,
+                event.message,
+                json.dumps(event.fields),
+            ),
+        )
+        self._conn.commit()
+        return cur.rowcount > 0
+
+    def lines_between(self, start: str, end: str) -> list[LogEvent]:
+        from jevops.chunks import parse_ts
+
+        query = "SELECT * FROM log_lines"
+        clauses: list[str] = []
+        params: list[float] = []
+        start_dt = parse_ts(start) if start else None
+        end_dt = parse_ts(end) if end else None
+        if start_dt:
+            clauses.append("ts_epoch >= ?")
+            params.append(start_dt.timestamp())
+        if end_dt:
+            clauses.append("ts_epoch < ?")
+            params.append(end_dt.timestamp())
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
+        query += " ORDER BY ts_epoch ASC, pk ASC"
+        rows = self._conn.execute(query, params).fetchall()
+        return [
+            LogEvent(
+                id=row["fingerprint"],
+                ts=row["ts"],
+                service=row["service"],
+                env=row["env"],
+                level=row["level"],
+                message=row["message"],
+                fields=json.loads(row["fields"]),
+            )
+            for row in rows
+        ]
