@@ -1,0 +1,6 @@
+{"@timestamp": "2026-09-24T14:43:25.786420+00:00", "service": "checkout-api", "env": "prod", "level": "ERROR", "message": "payment-gateway timeout after 3000ms; 3 consecutive failures; circuit breaker opening", "error_rate_5m": 0.42, "p99_latency_ms": 8400}
+{"@timestamp": "2026-09-24T14:43:25.786420+00:00", "service": "checkout-api", "env": "prod", "level": "ERROR", "message": "pod checkout-api-7d9f restarted (exit 137) shortly after deploy v2.3.1", "restarts_15m": 7, "deploy": "v2.3.1"}
+{"@timestamp": "2026-09-24T14:43:25.786420+00:00", "service": "checkout-api", "env": "prod", "level": "WARN", "message": "db pool 190/200 connections in use", "db_connections": 190}
+{"@timestamp": "2026-09-24T14:43:25.786420+00:00", "service": "web-frontend", "env": "prod", "level": "ERROR", "message": "upstream checkout-api returned 503 for 18% of requests", "status_503_rate": 0.18}
+{"@timestamp": "2026-09-24T14:43:25.786420+00:00", "service": "web-frontend", "env": "prod", "level": "INFO", "message": "health check ok"}
+{"@timestamp": "2026-09-24T14:43:25.786420+00:00", "service": "checkout-api", "env": "prod", "level": "INFO", "message": "all checkout errors cleared, pool back to 40/200, error rate 0"}

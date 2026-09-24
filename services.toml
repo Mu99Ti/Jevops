@@ -1,0 +1,15 @@
+# Per-service overrides for the Jevops page policy.
+# Delete this file or comment everything out to use global env defaults.
+
+[service."checkout-api"]
+min_confidence = 0.9
+min_human = 0.7
+cooldown_seconds = 900
+page_enabled = true
+
+[service."payments-api"]
+min_confidence = 0.85
+cooldown_seconds = 600
+
+[service."health-checker"]
+page_enabled = false

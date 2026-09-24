@@ -1,0 +1,7 @@
+# One substring per line; matching events are dropped before any model call.
+# Case-insensitive substring match on the log message.
+health check
+kube-proxy
+readiness probe failed
+liveness probe failed
+# completed successfully
